@@ -15,7 +15,7 @@ const (
 )
 
 func (b *BrokerNats) Publish(topic string, message interface{}) (interface{}, error) {
-	msgByte, ok := message.([]byte)
+	msgByte, ok := message.([]uint8)
 	if ok {
 		return nil, errors.New(E_NATS_MESSAGE_NOT_BYTE)
 	}
@@ -27,7 +27,7 @@ func (b *BrokerNats) Publish(topic string, message interface{}) (interface{}, er
 }
 func (b *BrokerNats) Subscribe(topic string, f func(msg interface{})) (interface{}, error) {
 	return b.conn.Subscribe(topic, func(m *nats.Msg) {
-		f(m)
+		f(m.Data)
 	})
 }
 
