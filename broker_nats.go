@@ -1,7 +1,7 @@
 package broke
 
 import (
-	"errors"
+	"encoding/json"
 
 	"github.com/nats-io/go-nats"
 )
@@ -15,11 +15,11 @@ const (
 )
 
 func (b *BrokerNats) Publish(topic string, message interface{}) (interface{}, error) {
-	msgByte, ok := message.([]uint8)
-	if ok {
-		return nil, errors.New(E_NATS_MESSAGE_NOT_BYTE)
+	msgByte, err := json.Marshal(message)
+	if err != nil {
+		return nil, err
 	}
-	err := b.conn.Publish(topic, msgByte)
+	err = b.conn.Publish(topic, msgByte)
 	if err != nil {
 		return nil, err
 	}
