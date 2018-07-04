@@ -29,7 +29,7 @@ type Broker interface {
 	Close()
 }
 
-func NewBroker(selectBroker string, parameters map[string]string) (Broker, error) {
+func NewBroker(selectBroker string) (Broker, error) {
 	switch selectBroker {
 	case BROKER_NATS:
 		return NewBrokerNats()
