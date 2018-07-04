@@ -58,9 +58,17 @@ func (b *BrokerGooglePubSub) Close() {
 	b.conn.Close()
 }
 
-func NewBrokerGooglePubSub(projectID string, credFile string) (Broker, error) {
+func NewBrokerGooglePubSub() (Broker, error) {
+	projectID, err := mustGetenv("GOOGLE_PROJECT_ID")
+	if err != nil {
+		return nil, err
+	}
+	credFilePath, err := mustGetenv("GOOGLE_CREDENTIAL")
+	if err != nil {
+		return nil, err
+	}
 	ctx := context.Background()
-	client, err := pubsub.NewClient(ctx, projectID, option.WithCredentialsFile(credFile))
+	client, err := pubsub.NewClient(ctx, projectID, option.WithCredentialsFile(credFilePath))
 	if err != nil {
 		return nil, err
 	}

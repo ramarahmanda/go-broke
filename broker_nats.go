@@ -35,8 +35,12 @@ func (b *BrokerNats) Close() {
 	b.conn.Close()
 }
 
-func NewBrokerNats(url string) (Broker, error) {
-	natsCon, err := nats.Connect(url)
+func NewBrokerNats() (Broker, error) {
+	natsUrl, err := mustGetenv("NATS_URL")
+	if err != nil {
+		return nil, err
+	}
+	natsCon, err := nats.Connect(natsUrl)
 	if err != nil {
 		return nil, err
 	}
