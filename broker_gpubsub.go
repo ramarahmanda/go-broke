@@ -25,7 +25,17 @@ func (b *BrokerGooglePubSub) Publish(topic string, message interface{}) (interfa
 	}
 	ctx := context.Background()
 	var result *pubsub.PublishResult
-	pubTopic, _ := b.conn.CreateTopic(ctx, topic)
+	pubTopic := b.conn.Topic(topic)
+	exist, err := pubTopic.Exists(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !exist {
+		pubTopic, err = b.conn.CreateTopic(ctx, topic)
+		if err != nil {
+			return nil, err
+		}
+	}
 	result = pubTopic.Publish(ctx, &pubsub.Message{
 		Data: data,
 	})
@@ -38,12 +48,29 @@ func (b *BrokerGooglePubSub) Publish(topic string, message interface{}) (interfa
 func (b *BrokerGooglePubSub) Subscribe(topic string, f func(msg interface{})) (interface{}, error) {
 	ctx := context.Background()
 	pubTopic := b.conn.Topic(topic)
-	sub, err := b.conn.CreateSubscription(ctx, topic, pubsub.SubscriptionConfig{
-		Topic:       pubTopic,
-		AckDeadline: 20 * time.Second,
-	})
+	exist, err := pubTopic.Exists(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if !exist {
+		pubTopic, err = b.conn.CreateTopic(ctx, topic)
+		if err != nil {
+			return nil, err
+		}
+	}
+	sub := b.conn.Subscription(topic)
+	exist, err = sub.Exists(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !exist {
+		sub, err = b.conn.CreateSubscription(ctx, topic, pubsub.SubscriptionConfig{
+			Topic:       pubTopic,
+			AckDeadline: 20 * time.Second,
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 	err = sub.Receive(ctx, func(c context.Context, msg *pubsub.Message) {
 		f(msg.Data)
