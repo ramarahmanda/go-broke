@@ -72,12 +72,10 @@ func (b *BrokerGooglePubSub) Subscribe(topic string, f func(msg interface{})) (i
 			return nil, err
 		}
 	}
-	err = sub.Receive(ctx, func(c context.Context, msg *pubsub.Message) {
+	go sub.Receive(ctx, func(c context.Context, msg *pubsub.Message) {
 		f(msg.Data)
 	})
-	if err != nil {
-		return nil, err
-	}
+
 	return nil, nil
 }
 
