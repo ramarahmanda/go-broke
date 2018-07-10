@@ -11,6 +11,7 @@ const (
 	E_ENV_NOTFOUND         = "ENV %s NOT FOUND"
 )
 const (
+	TIMEOUT_SECONDS      = 10
 	BROKER_NATS          = "nats"
 	BROKER_GOOGLE_PUBSUB = "gpubsub"
 )

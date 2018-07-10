@@ -23,7 +23,8 @@ func (b *BrokerGooglePubSub) Publish(topic string, message interface{}) (interfa
 	if err != nil {
 		return nil, err
 	}
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*TIMEOUT_SECONDS)
+	defer cancel()
 	var result *pubsub.PublishResult
 	pubTopic := b.conn.Topic(topic)
 	exist, err := pubTopic.Exists(ctx)
@@ -46,7 +47,8 @@ func (b *BrokerGooglePubSub) Publish(topic string, message interface{}) (interfa
 	return nil, nil
 }
 func (b *BrokerGooglePubSub) Subscribe(topic string, f func(msg interface{})) (interface{}, error) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*TIMEOUT_SECONDS)
+	defer cancel()
 	pubTopic := b.conn.Topic(topic)
 	exist, err := pubTopic.Exists(ctx)
 	if err != nil {
@@ -92,7 +94,8 @@ func NewBrokerGooglePubSub() (Broker, error) {
 	if err != nil {
 		return nil, err
 	}
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*TIMEOUT_SECONDS)
+	defer cancel()
 	client, err := pubsub.NewClient(ctx, projectID, option.WithCredentialsFile(credFilePath))
 	if err != nil {
 		return nil, err
