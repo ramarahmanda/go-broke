@@ -47,8 +47,7 @@ func (b *BrokerGooglePubSub) Publish(topic string, message interface{}) (interfa
 	return nil, nil
 }
 func (b *BrokerGooglePubSub) Subscribe(topic string, f func(msg interface{})) (interface{}, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*TIMEOUT_SECONDS)
-	defer cancel()
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*TIMEOUT_SECONDS)
 	pubTopic := b.conn.Topic(topic)
 	exist, err := pubTopic.Exists(ctx)
 	if err != nil {
