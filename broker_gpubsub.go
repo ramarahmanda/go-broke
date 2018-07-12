@@ -3,19 +3,25 @@ package broke
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/pubsub"
 	"google.golang.org/api/option"
 )
 
+type GooglePubsubOptions struct {
+	TimeoutSeconds time.Duration
+}
 type BrokerGooglePubSub struct {
-	conn *pubsub.Client
+	conn    *pubsub.Client
+	Options GooglePubsubOptions
 }
 
 const (
 	E_PUBSUB_MESSAGE_NOT_BYTE = "Message must be byte value"
-	PUBSUB_PUBLISH_LIMIT      = 10
+	PUBSUB_PUBLISH_LIMIT      = 20
 )
 
 func (b *BrokerGooglePubSub) Publish(topic string, message interface{}) (interface{}, error) {
@@ -23,7 +29,7 @@ func (b *BrokerGooglePubSub) Publish(topic string, message interface{}) (interfa
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*TIMEOUT_SECONDS)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*b.Options.TimeoutSeconds)
 	defer cancel()
 	var result *pubsub.PublishResult
 	pubTopic := b.conn.Topic(topic)
@@ -46,8 +52,9 @@ func (b *BrokerGooglePubSub) Publish(topic string, message interface{}) (interfa
 	}
 	return nil, nil
 }
-func (b *BrokerGooglePubSub) Subscribe(topic string, f func(msg interface{})) (interface{}, error) {
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*TIMEOUT_SECONDS)
+func (b *BrokerGooglePubSub) Subscribe(topic string, f func(msg interface{}) error) (interface{}, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*b.Options.TimeoutSeconds)
+	defer cancel()
 	pubTopic := b.conn.Topic(topic)
 	exist, err := pubTopic.Exists(ctx)
 	if err != nil {
@@ -67,16 +74,28 @@ func (b *BrokerGooglePubSub) Subscribe(topic string, f func(msg interface{})) (i
 	if !exist {
 		sub, err = b.conn.CreateSubscription(ctx, topic, pubsub.SubscriptionConfig{
 			Topic:       pubTopic,
-			AckDeadline: 20 * time.Second,
+			AckDeadline: 10 * time.Second,
 		})
 		if err != nil {
 			return nil, err
 		}
 	}
-	go sub.Receive(ctx, func(c context.Context, msg *pubsub.Message) {
-		f(msg.Data)
+	var mu sync.Mutex
+	cctx, cancel := context.WithCancel(context.Background())
+	received := 0
+	go sub.Receive(cctx, func(c context.Context, msg *pubsub.Message) {
+		if err := f(msg.Data); err != nil {
+			msg.Nack()
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		received++
+		msg.Ack()
+		if received == 10 {
+			cancel()
+		}
 	})
-
 	return nil, nil
 }
 
@@ -85,6 +104,15 @@ func (b *BrokerGooglePubSub) Close() {
 }
 
 func NewBrokerGooglePubSub() (Broker, error) {
+	var options = GooglePubsubOptions{
+		TimeoutSeconds: 10,
+	}
+	if timeoutEnv := os.Getenv("TIMEOUT_SECONDS"); timeoutEnv != "" {
+		timeoutDuration, err := time.ParseDuration(timeoutEnv)
+		if err == nil {
+			options.TimeoutSeconds = timeoutDuration
+		}
+	}
 	projectID, err := mustGetenv("GOOGLE_PROJECT_ID")
 	if err != nil {
 		return nil, err
@@ -93,8 +121,9 @@ func NewBrokerGooglePubSub() (Broker, error) {
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*TIMEOUT_SECONDS)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*options.TimeoutSeconds)
 	defer cancel()
+
 	client, err := pubsub.NewClient(ctx, projectID, option.WithCredentialsFile(credFilePath))
 	if err != nil {
 		return nil, err
@@ -102,6 +131,7 @@ func NewBrokerGooglePubSub() (Broker, error) {
 	// Create topic if it doesn't exist.
 	return &BrokerGooglePubSub{
 		client,
+		options,
 	}, nil
 
 }

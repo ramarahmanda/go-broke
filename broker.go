@@ -10,8 +10,8 @@ const (
 	E_BROKER_NOT_SUPPORTED = "Broker type not supported"
 	E_ENV_NOTFOUND         = "ENV %s NOT FOUND"
 )
+
 const (
-	TIMEOUT_SECONDS      = 10
 	BROKER_NATS          = "nats"
 	BROKER_GOOGLE_PUBSUB = "gpubsub"
 )
@@ -26,7 +26,7 @@ func mustGetenv(k string) (string, error) {
 
 type Broker interface {
 	Publish(topic string, message interface{}) (interface{}, error)
-	Subscribe(topic string, f func(msg interface{})) (interface{}, error)
+	Subscribe(topic string, f func(msg interface{}) error) (interface{}, error)
 	Close()
 }
 

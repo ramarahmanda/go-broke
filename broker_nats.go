@@ -25,7 +25,7 @@ func (b *BrokerNats) Publish(topic string, message interface{}) (interface{}, er
 	}
 	return nil, nil
 }
-func (b *BrokerNats) Subscribe(topic string, f func(msg interface{})) (interface{}, error) {
+func (b *BrokerNats) Subscribe(topic string, f func(msg interface{}) error) (interface{}, error) {
 	return b.conn.Subscribe(topic, func(m *nats.Msg) {
 		f(m.Data)
 	})
