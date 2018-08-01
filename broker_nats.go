@@ -14,6 +14,20 @@ const (
 	E_NATS_MESSAGE_NOT_BYTE = "Message must be byte value"
 )
 
+func NewBrokerNats() (Broker, error) {
+	natsUrl, err := mustGetenv("NATS_URL")
+	if err != nil {
+		return nil, err
+	}
+	natsCon, err := nats.Connect(natsUrl)
+	if err != nil {
+		return nil, err
+	}
+	return &BrokerNats{
+		natsCon,
+	}, nil
+}
+
 func (b *BrokerNats) Publish(topic string, message interface{}) (interface{}, error) {
 	msgByte, err := json.Marshal(message)
 	if err != nil {
@@ -38,18 +52,4 @@ func (b *BrokerNats) SubscribeWithOptions(topic string, f func(msg interface{}) 
 
 func (b *BrokerNats) Close() {
 	b.conn.Close()
-}
-
-func NewBrokerNats() (Broker, error) {
-	natsUrl, err := mustGetenv("NATS_URL")
-	if err != nil {
-		return nil, err
-	}
-	natsCon, err := nats.Connect(natsUrl)
-	if err != nil {
-		return nil, err
-	}
-	return &BrokerNats{
-		natsCon,
-	}, nil
 }

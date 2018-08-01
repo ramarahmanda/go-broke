@@ -14,15 +14,8 @@ const (
 const (
 	BROKER_NATS          = "nats"
 	BROKER_GOOGLE_PUBSUB = "gpubsub"
+	BROKER_MEMORY        = "memory"
 )
-
-func mustGetenv(k string) (string, error) {
-	v := os.Getenv(k)
-	if v == "" {
-		return "", errors.New(fmt.Sprintf(E_ENV_NOTFOUND, k))
-	}
-	return v, nil
-}
 
 type Broker interface {
 	Publish(topic string, message interface{}) (interface{}, error)
@@ -37,6 +30,16 @@ func NewBroker(selectBroker string) (Broker, error) {
 		return NewBrokerNats()
 	case BROKER_GOOGLE_PUBSUB:
 		return NewBrokerGooglePubSub()
+	case BROKER_MEMORY:
+		return NewBrokerMemory()
 	}
 	return nil, errors.New(E_BROKER_NOT_SUPPORTED)
+}
+
+func mustGetenv(k string) (string, error) {
+	v := os.Getenv(k)
+	if v == "" {
+		return "", errors.New(fmt.Sprintf(E_ENV_NOTFOUND, k))
+	}
+	return v, nil
 }
