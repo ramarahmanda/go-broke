@@ -27,6 +27,7 @@ func mustGetenv(k string) (string, error) {
 type Broker interface {
 	Publish(topic string, message interface{}) (interface{}, error)
 	Subscribe(topic string, f func(msg interface{}) error) (interface{}, error)
+	SubscribeWithOptions(topic string, f func(msg interface{}) error, options map[string]interface{}) (interface{}, error)
 	Close()
 }
 
