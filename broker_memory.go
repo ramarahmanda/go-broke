@@ -1,6 +1,7 @@
 package broke
 
 import (
+	"encoding/json"
 	"errors"
 	"sync"
 )
@@ -41,7 +42,12 @@ func (b *BrokerMemory) Publish(topic string, message interface{}) (interface{}, 
 	b.topics[topic] = true
 	b.writeLock.Unlock()
 
-	b.contents <- brokerMessage{topic, message}
+	byteMsg, err := json.Marshal(message)
+	if err != nil {
+		return nil, err
+	}
+
+	b.contents <- brokerMessage{topic, byteMsg}
 
 	return nil, nil
 }

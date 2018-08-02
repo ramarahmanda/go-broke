@@ -23,7 +23,11 @@ func TestNewBrokerMemory(t *testing.T) {
 		topics := []string{"topic1", "topic2"}
 		for _, topic := range topics {
 			b.Subscribe(topic, func(msg interface{}) error {
-				fmt.Println("Incoming message:", msg)
+				bytesMsg, ok := msg.([]byte)
+				if !ok {
+					t.Fatalf("Expect message type to []byte, got: %T", msg)
+				}
+				fmt.Println("Incoming message:", string(bytesMsg))
 				return nil
 			})
 		}
