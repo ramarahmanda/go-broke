@@ -1,12 +1,13 @@
 package broke
 
 import (
-	"cloud.google.com/go/pubsub"
 	"context"
 	"encoding/json"
-	"google.golang.org/api/option"
 	"os"
 	"time"
+
+	"cloud.google.com/go/pubsub"
+	"google.golang.org/api/option"
 )
 
 type GooglePubsubOptions struct {
@@ -102,32 +103,31 @@ func (b *BrokerGooglePubSub) SubscribeWithOptions(topic string, f func(msg inter
 			return nil, err
 		}
 	}
-	sub := b.conn.Subscription(topic)
+	subName := topic
+	if val, exists := options["name"]; exists {
+		if str, isString := val.(string); isString {
+			subName = str
+		}
+	}
+	isPushSubscription := false
+	var pConfig pubsub.PushConfig
+	if val, exists := options["push_config"]; exists {
+		if ps, isPushConfig := val.(pubsub.PushConfig); isPushConfig {
+			pConfig = ps
+			isPushSubscription = true
+		}
+	}
+	sub := b.conn.Subscription(subName)
 	exist, err = sub.Exists(ctx)
 	if err != nil {
 		return nil, err
 	}
-	isPushSubscription := false
 	if !exist {
 		config := pubsub.SubscriptionConfig{
 			Topic:       pubTopic,
 			AckDeadline: 10 * time.Second,
+			PushConfig:  pConfig,
 		}
-
-		subName := topic
-		if val, exists := options["name"]; exists {
-			if str, isString := val.(string); isString {
-				subName = str
-			}
-		}
-
-		if val, exists := options["push_config"]; exists {
-			if ps, isPushConfig := val.(pubsub.PushConfig); isPushConfig {
-				config.PushConfig = ps
-				isPushSubscription = true
-			}
-		}
-
 		sub, err = b.conn.CreateSubscription(ctx, subName, config)
 		if err != nil {
 			return nil, err
